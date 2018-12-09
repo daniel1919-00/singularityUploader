@@ -13,8 +13,9 @@ A simple file uploader
 The plugin uses Bootstrap 4 and font-awesome styles, but you may change it to whatever suits your own project.
 
 ```javascript
-// 1. Include script file <script src="singularityUploader.min.js"></script>
-// 2 . Create an instance 
+// 1. Include stylesheet <link rel="stylesheet" href="singularityUploader.min.css">
+// 2. Include script file <script src="singularityUploader.min.js"></script>
+// 3 . Create an instance 
   singularityUploader.create('targetId', {
     transferDestination: 'uploadFiles.php' // NOTE: This will handle our uploads
 });
@@ -23,7 +24,7 @@ The plugin uses Bootstrap 4 and font-awesome styles, but you may change it to wh
 Available options:
 
 ```javascript
-{
+let options = {
   transferDestination:'', // NOTE: Script that will handle the uploads
   allowedFileExtensions:[], // NOTE: Accepted file extensions
   maxFileSize:null, // NOTE: Max file size in bytes
@@ -34,7 +35,8 @@ Available options:
   maxRetries: 3, // NOTE: Max number of chunk retries
   success:null, // Succes callback - called after the last file has been uploaded and success confirmation from handling script is received
   error:null, // NOTE: Not yet implemented
-  uploadButtonText: 'Upload' // NOTE: Upload button displayed text
+  uploadButtonText: 'Upload', // NOTE: Upload button displayed text
+  selectFilesText: 'Select Files' // NOTE: Select files button text
 }
 ```
 
