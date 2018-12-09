@@ -7,8 +7,12 @@ input._sg-uploader-input {
     z-index: -1;
 }
 
+._sg-uploader-container{
+    padding:5px;
+}
+
 ._sg-uploader-container.highlight {
-    border: 1px dotted #1c7430;
+    box-shadow: 0 0 10px 1px #1487db;
 }
 
 ._sg-uploader-button{
@@ -17,6 +21,9 @@ input._sg-uploader-input {
 
 ._sg-uploader-filesList{
     padding: 5px 0;
+    max-height:150px;
+    width:100%;
+    overflow: auto;
 }
 
 ._sg-uploader-filesList li {
