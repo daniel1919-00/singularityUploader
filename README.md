@@ -5,7 +5,7 @@ A simple file uploader
 * Suports uploading of large files via multiple smaller-sized data chunks (this also allows bypassing the php upload limit)
 * Includes server-side handling script (PHP)
 
-#Usage
+# Usage
 <h4>JS Plugin</h4>
 ```javascript
 // 1. Include script file <script src="singularityUploader.min.js"></script>
@@ -16,7 +16,7 @@ A simple file uploader
 ```
 
 Available options:
-```javascript
+```
 {
   transferDestination:'', // NOTE: Script that will handle the uploads
   allowedFileExtensions:[], // NOTE: Accepted file extensions
@@ -31,8 +31,10 @@ Available options:
   uploadButtonText: 'Upload' // NOTE: Upload button displayed text
 }
 ```
+
 <h4>Server-side</h4>
-```php
+
+```
 $uploadSession = new UploadManager();
 
 // NOTE: Configure settings per upload session
