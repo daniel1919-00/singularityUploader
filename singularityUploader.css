@@ -1,0 +1,12 @@
+input._sg-uploader-input {
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+._sg-uploader-container.highlight {
+    border: 1px dotted #1c7430;
+}

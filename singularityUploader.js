@@ -38,7 +38,8 @@ var singularityUploader =
                 maxRetries: 3,
                 success:null,
                 error:null,
-                uploadButtonText: 'Upload'
+                uploadButtonText: 'Upload',
+                selectFilesText: 'Select Files',
             }, options);
 
             var uploader = document.createElement('input');
@@ -75,10 +76,52 @@ var singularityUploader =
             uploader.fileHasErrors = this.fileHasErrors;
             var instanceId = (this.instances.push(uploader) - 1);
             uploader.instanceId = instanceId;
+            uploader.setAttribute('id', '_sg-uploader-input' + instanceId);
 
             container.appendChild(uploader);
+
+            var uploaderLabel = document.createElement('label');
+
+            uploaderLabel.innerHTML = '<div class="btn btn-primary">'+ options.selectFilesText +'</div>';
+            uploaderLabel.setAttribute('for', '_sg-uploader-input' + instanceId);
+            uploaderLabel.setAttribute('class', '_sg-uploader-fileLabel');
+
+            container.appendChild(uploaderLabel);
+
             container.classList.add('_sg-uploader-container');
             container.setAttribute('data-instance-id', instanceId);
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (eventName) {
+                container.addEventListener(eventName,
+                    function(e)
+                    {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    },
+                    false)
+            });
+
+            ['dragenter', 'dragover'].forEach(function (eventName) {
+                container.addEventListener(eventName, function()
+                {
+                    container.classList.add('highlight')
+                }, false)
+            });
+
+            ['dragleave', 'drop'].forEach(function (eventName) {
+                container.addEventListener(eventName, function()
+                {
+                    container.classList.remove('highlight')
+                }, false)
+            });
+
+            container.addEventListener('drop', function(e)
+            {
+                if(e.dataTransfer && e.dataTransfer.files)
+                {
+                    uploader.files = e.dataTransfer.files;
+                }
+            }, false);
 
             return instanceId;
         },
