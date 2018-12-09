@@ -5,9 +5,9 @@ A simple file uploader
 * Suports uploading of large files via multiple smaller-sized data chunks (this also allows bypassing the php upload limit)
 * Includes server-side handling script (PHP)
 
+# Usage
 <div style="color:red;">Warning! Altough this plugins includes some basic "security" measures, you should implement your own if you intend to use this in a project! I'm not responsible for any security breaches you may have!</div>
 
-#Usage
 <h4>JS Plugin</h4>
 
 The plugin uses Bootstrap 4 and font-awesome styles, but you may change it to whatever suits your own project.
@@ -21,6 +21,7 @@ The plugin uses Bootstrap 4 and font-awesome styles, but you may change it to wh
 ```
 
 Available options:
+
 ```javascript
 {
   transferDestination:'', // NOTE: Script that will handle the uploads
@@ -36,7 +37,9 @@ Available options:
   uploadButtonText: 'Upload' // NOTE: Upload button displayed text
 }
 ```
+
 <h4>Server-side</h4>
+
 ```php
 $uploadSession = new UploadManager();
 
