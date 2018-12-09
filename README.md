@@ -1,11 +1,12 @@
-# singularityUploader
+# Plugin overview
 A simple file uploader
 
 * Does not require any libraries
 * Suports uploading of large files via multiple smaller-sized data chunks (this also allows bypassing the php upload limit)
 * Includes server-side handling script (PHP)
 
-Usage:
+#Usage
+<h4>JS Plugin</h4>
 ```javascript
 // 1. Include script file <script src="singularityUploader.min.js"></script>
 // 2 . Create an instance 
@@ -29,4 +30,17 @@ Available options:
   error:null, // NOTE: Not yet implemented
   uploadButtonText: 'Upload' // NOTE: Upload button displayed text
 }
+```
+<h4>Server-side</h4>
+```php
+$uploadSession = new UploadManager();
+
+// NOTE: Configure settings per upload session
+$uploadSession->getUploadSessionConfig('singularityUpload') // NOTE: The session name should reflect the 'sessionName' js option or files will not be stored correctly
+                ->setUploadPath(__DIR__.DIRECTORY_SEPARATOR.'uploads')
+                ->setAlowMultipleFiles(true) // NOTE: This should reflect what was set in the js options so that files are not lost
+                ->setAllowedFileExtensions(['doc', 'docx']) // NOTE: This should reflect what was set in the js options so that files are not lost
+;
+
+$uploadSession->handleUploads(); // NOTE: Start listening for incoming files
 ```
