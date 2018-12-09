@@ -60,14 +60,12 @@ class UploadManager
 
         if(!$this->transferMetadata['integrityCheck'])
         {
-            $this->sendTransferError();// NOTE: Data may have been tampered with
+            $this->sendTransferError('File integrity check fail!');// NOTE: Data may have been tampered with
         }
-        else
+
+        if(!$this->isValidUpload())
         {
-            if(!$this->isValidUpload())
-            {
-                $this->sendTransferError('Invalid file!', false);
-            }
+            $this->sendTransferError('Invalid file!', false);
         }
 
         $this->currentTransferSession = 'UploadManagerStorage_'.$this->transferMetadata['sessionName'].$this->transferMetadata['sessionId'];
@@ -273,7 +271,7 @@ class UploadManager
             return false;
         }
 
-        if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAlloweMultipleFiles())
+        if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAllowMultipleFiles())
         {
             if(!isset($_SESSION[$this->transferMetadata['sessionName']]))
             {
@@ -469,7 +467,7 @@ class UploadManagerConfig
     /**
      * @return bool
      */
-    public function getAlloweMultipleFiles()
+    public function getAllowMultipleFiles()
     {
         return $this->sessionConfig['allowMultipleFiles'];
     }
