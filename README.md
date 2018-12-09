@@ -7,6 +7,7 @@ A simple file uploader
 
 # Usage
 <h4>JS Plugin</h4>
+
 ```javascript
 // 1. Include script file <script src="singularityUploader.min.js"></script>
 // 2 . Create an instance 
@@ -16,7 +17,8 @@ A simple file uploader
 ```
 
 Available options:
-```
+
+```javascript
 {
   transferDestination:'', // NOTE: Script that will handle the uploads
   allowedFileExtensions:[], // NOTE: Accepted file extensions
@@ -34,7 +36,7 @@ Available options:
 
 <h4>Server-side</h4>
 
-```
+```php
 $uploadSession = new UploadManager();
 
 // NOTE: Configure settings per upload session
