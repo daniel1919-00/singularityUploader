@@ -10,3 +10,7 @@ input._sg-uploader-input {
 ._sg-uploader-container.highlight {
     border: 1px dotted #1c7430;
 }
+
+._sg-uploader-button{
+    margin-left:7px;
+}

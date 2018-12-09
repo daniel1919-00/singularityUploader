@@ -80,13 +80,33 @@ var singularityUploader =
 
             container.appendChild(uploader);
 
+            var uploadButton = document.createElement('button');
+            uploadButton.setAttribute('id', '_sg-uploader-button' + instanceId);
+            uploadButton.setAttribute('class', 'btn btn-primary btn-sm _sg-uploader-button');
+            uploadButton.innerHTML = options.uploadButtonText;
+            uploadButton.style.display = 'none';
+            uploadButton.onclick = function(event)
+            {
+                event.preventDefault();
+                var progressBar = document.getElementById('_sg-uploader-fileProgressContainer' + instanceId);
+
+                if(progressBar)
+                {
+                    progressBar.style.display = 'inline-flex';
+                }
+
+                uploader.initTransfer();
+            };
+
             var uploaderLabel = document.createElement('label');
 
-            uploaderLabel.innerHTML = '<div class="btn btn-primary">'+ options.selectFilesText +'</div>';
+            uploaderLabel.innerHTML = '<div class="btn btn-primary btn-sm">'+ options.selectFilesText +'</div>';
             uploaderLabel.setAttribute('for', '_sg-uploader-input' + instanceId);
             uploaderLabel.setAttribute('class', '_sg-uploader-fileLabel');
 
             container.appendChild(uploaderLabel);
+            uploaderLabel.appendChild(uploadButton);
+            uploader.uploadButton = uploadButton;
 
             container.classList.add('_sg-uploader-container');
             container.setAttribute('data-instance-id', instanceId);
@@ -242,6 +262,8 @@ var singularityUploader =
                 fileList.appendChild(liElem);
             }
 
+            uploader.uploadButton.style.display = 'inline-block';
+
             if(initFileList)
             {
                 fileList.setAttribute('class', '_sg-uploader-filesList');
@@ -250,24 +272,6 @@ var singularityUploader =
                 overallProgressBar.innerHTML = '<div id="_sg-uploader-fileProgressContainer'+ instanceId +'" class="_sg-uploader-fileProgress progress" style="width: 85px;display:none;vertical-align:middle;"><div id="_sg-uploader-fileProgress'+instanceId+'" class="progress-bar" role="progressbar" style="width:0;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div></div>';
                 uploader.parentNode.appendChild(overallProgressBar);
                 uploader.parentNode.appendChild(fileList);
-
-                var uploadButton = document.createElement('button');
-                uploadButton.setAttribute('class', '_sg-button _sg-button-primary');
-                uploadButton.innerHTML = uploader.options.uploadButtonText;
-                uploadButton.onclick = function(event)
-                {
-                    event.preventDefault();
-                    var progressBar = document.getElementById('_sg-uploader-fileProgressContainer' + uploader.instanceId);
-
-                    if(progressBar)
-                    {
-                        progressBar.style.display = 'inline-flex';
-                    }
-
-                    uploader.initTransfer();
-                };
-
-                uploader.parentNode.appendChild(uploadButton);
                 uploader.fileList = fileList;
             }
         },
@@ -285,6 +289,8 @@ var singularityUploader =
                     {
                         overallProgressBar.remove();
                     }
+
+                    uploader.uploadButton.style.display = 'none';
 
                     if(!uploader.errors)
                     {
