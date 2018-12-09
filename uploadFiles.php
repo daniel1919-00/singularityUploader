@@ -15,7 +15,7 @@ $uploadSession->getUploadSessionConfig('singularityUpload')
                 ->setUploadPath(__DIR__.DIRECTORY_SEPARATOR.'uploads')
                 ->setAlowMultipleFiles(true)
                 ->setAllowedFileExtensions(['doc', 'docx', 'pdf'])
-                ->setMaxFileSize('200MB')
+                ->setMaxFileSize('10MB')
 ;
 
 $uploadSession->handleUploads();

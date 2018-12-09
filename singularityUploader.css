@@ -14,3 +14,11 @@ input._sg-uploader-input {
 ._sg-uploader-button{
     margin-left:7px;
 }
+
+._sg-uploader-filesList{
+    padding: 5px 0;
+}
+
+._sg-uploader-filesList li {
+    list-style-type: none;
+}

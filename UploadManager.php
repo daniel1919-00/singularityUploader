@@ -63,9 +63,10 @@ class UploadManager
             $this->sendTransferError('File integrity check fail!');// NOTE: Data may have been tampered with
         }
 
-        if(!$this->isValidUpload())
+        $validUpload = $this->isValidUpload();
+        if($validUpload !== true)
         {
-            $this->sendTransferError('Invalid file!', false);
+            $this->sendTransferError($validUpload, false);
         }
 
         $this->currentTransferSession = 'UploadManagerStorage_'.$this->transferMetadata['sessionName'].$this->transferMetadata['sessionId'];
@@ -163,12 +164,6 @@ class UploadManager
     private function writeFileFromChunks(int $retries)
     {
         $basePath = $this->uploadDirectory . DIRECTORY_SEPARATOR;
-
-        if(!$this->isValidUpload())
-        {
-            return false;
-        }
-
         if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload() === null)
         {
             $fileName = $this->transferMetadata['fileName'];
@@ -288,13 +283,24 @@ class UploadManager
     }
 
     /**
-     * @return bool
+     * @return bool|string Boolean true if the upload session is valid, en error message otherwhise
      */
     private function isValidUpload()
     {
-        return $this->isValidFileName($this->transferMetadata['fileName'])
-               && $this->isValidFileExtension($this->transferMetadata['fileName'])
-               && $this->isValidFileSize(max($this->transferMetadata['fileSize'], ($this->transferMetadata['totalChunks'] * $this->transferMetadata['chunkSize'])));
+        if(!$this->isValidFileName($this->transferMetadata['fileName']))
+        {
+            return 'File name contains invalid characters!';
+        }
+        else if(!$this->isValidFileExtension($this->transferMetadata['fileName']))
+        {
+            return 'File has an invalid extension!';
+        }
+        else if(!$this->isValidFileSize(max($this->transferMetadata['fileSize'], ($this->transferMetadata['totalChunks'] * $this->transferMetadata['chunkSize']))))
+        {
+            return 'File exceeds allowed max size of '.$this->bytesToHumanReadable($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getMaxFileSize()).' !';
+        }
+
+        return true;
     }
 
     /**
@@ -303,6 +309,10 @@ class UploadManager
      */
     private function isValidFileExtension(string $fileName)
     {
+        if(!$this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAllowedFileExtensions())
+        {
+            return true;
+        }
         $extension = explode('.', str_replace(' ', '', $fileName));
         return in_array(strtolower(end($extension)), $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAllowedFileExtensions());
     }
@@ -370,6 +380,12 @@ class UploadManager
     {
         return sprintf('%u', crc32($string));
     }
+
+    private function bytesToHumanReadable($bytes)
+    {
+        $unit = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+        return @round($bytes / pow(1024, ($i = floor(log($bytes, 1024)))), 2) . ' ' . $unit[$i];
+    }
 }
 
 class UploadManagerConfig
@@ -381,7 +397,7 @@ class UploadManagerConfig
         $this->sessionConfig = [
             'allowMultipleFiles' => false,
             'uploadPath' => '',
-            'allowedExtensions' => [],
+            'allowedExtensions' => [], // NOTE: Warning if empty all extensions are allowed
             'renameAfterUpload' => null,
             'overwriteExistingFiles' => true,
             'maxFileSize' => 10485760 // NOTE: ~10MB
