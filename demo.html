@@ -20,6 +20,7 @@
 <script>
 singularityUploader.create('singularityUpload', {
     transferDestination: 'uploadFiles.php',
+    allowedFileExtensions: ['doc', 'docx', 'pdf'],
     success: function()
     {
         alert('All files uploaded successfully');

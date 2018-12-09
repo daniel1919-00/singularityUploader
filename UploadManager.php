@@ -11,49 +11,32 @@ class UploadManager
     private $transferMetadata;
     private $fileStorage;
     private $uploadDirectory;
-    private $overwriteExisting;
     private $currentTransferSession;
     private $finalFileMergingRetries; // NOTE: Number of retries for writing the final file from chunks before aborting
-    private $renameAfterUpload;
+    private $uploadSessionsConfig;
 
-    public function __construct(string $uploadDirectory)
+    public function __construct()
     {
         if(session_status() == PHP_SESSION_NONE)
         {
             session_start();
         }
-
-        $this->uploadDirectory = $uploadDirectory;
-        $this->overwriteExisting = true;
         $this->fileStorage = [];
         $this->finalFileMergingRetries = 3;
-        $this->renameAfterUpload = null;
     }
 
     /**
-     * @param bool $state
-     * @return $this
+     * @param string $sessionName
+     * @return UploadManagerConfig
      */
-    public function overwriteExistingFiles(bool $state)
+    public function getUploadSessionConfig(string $sessionName)
     {
-        $this->overwriteExisting = $state;
+        if(!isset($this->uploadSessionsConfig[$sessionName]))
+        {
+            $this->uploadSessionsConfig[$sessionName] = new UploadManagerConfig();
+        }
 
-        return $this;
-    }
-
-    /**
-     * Renames a file after upload is complete
-     *
-     * @param string $newName File name (without extension) to be applied
-     * WARNING! This method should be used on single file uploads only!
-     * Also this WILL overwrite existing files with the same name
-     *
-     * @return $this
-     */
-    public function renameAfterUpload(string $newName)
-    {
-        $this->renameAfterUpload = $newName;
-        return $this;
+        return $this->uploadSessionsConfig[$sessionName];
     }
 
     /**
@@ -64,17 +47,6 @@ class UploadManager
     public function setMergingFromChunksRetries(int $retries)
     {
         $this->finalFileMergingRetries = $retries;
-
-        return $this;
-    }
-
-    /**
-     * @param string $uploadDirectory
-     * @return $this
-     */
-    public function setUploadDir(string $uploadDirectory)
-    {
-        $this->uploadDirectory = $uploadDirectory;
 
         return $this;
     }
@@ -97,6 +69,8 @@ class UploadManager
         {
             $this->fileStorage = $_SESSION[$this->currentTransferSession];
         }
+
+        $this->uploadDirectory = $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getUploadPath();
 
         if($this->writeDataChunk())
         {
@@ -184,11 +158,11 @@ class UploadManager
     private function writeFileFromChunks(int $retries)
     {
         $basePath = $this->uploadDirectory . DIRECTORY_SEPARATOR;
-        if($this->renameAfterUpload === null)
+        if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload() === null)
         {
             $fileName = $this->transferMetadata['fileName'];
 
-            if (!$this->overwriteExisting && file_exists($basePath . $fileName))
+            if (!$this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getOverwriteExistingFiles() && file_exists($basePath . $fileName))
             {
                 $sameFileNameCount = 0;
                 $fileInfo          = pathinfo($basePath . $fileName);
@@ -203,7 +177,7 @@ class UploadManager
             $initialExtension = explode('.', $this->transferMetadata['fileName']);
             $initialExtension = $initialExtension ? '.'.end($initialExtension) : '';
 
-            $fileName = $this->renameAfterUpload.$initialExtension;
+            $fileName = $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload().$initialExtension;
         }
 
         $destinationStream = fopen($basePath .$fileName, 'wb');
@@ -279,6 +253,21 @@ class UploadManager
             unlink($temporaryFile);
         }
         fclose($destinationStream);
+
+
+        if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAlloweMultipleFiles())
+        {
+            if(!isset($_SESSION[$this->transferMetadata['sessionName']]))
+            {
+                $_SESSION[$this->transferMetadata['sessionName']] = [];
+            }
+            $_SESSION[$this->transferMetadata['sessionName']][] = $basePath .$fileName;
+        }
+        else
+        {
+            $_SESSION[$this->transferMetadata['sessionName']] = $basePath .$fileName;
+        }
+
         return true;
     }
 
@@ -337,5 +326,113 @@ class UploadManager
     private function calculateChecksum($string)
     {
         return sprintf('%u', crc32($string));
+    }
+}
+
+class UploadManagerConfig
+{
+    private $sessionConfig;
+
+    public function __construct()
+    {
+        $this->sessionConfig = [
+            'allowMultipleFiles' => false,
+            'uploadPath' => '',
+            'allowedExtensions' => [],
+            'renameAfterUpload' => null,
+            'overwriteExistingFiles' => true
+        ];
+    }
+
+    /**
+     * Weather multiple file uploads support will be enabled
+     * @param bool $state
+     * @return $this
+     */
+    public function setAlowMultipleFiles(bool $state = false)
+    {
+        $this->sessionConfig['allowMultipleFiles'] = $state;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getAlloweMultipleFiles()
+    {
+        return $this->sessionConfig['allowMultipleFiles'];
+    }
+
+    /**
+     * @param string $path
+     * @return $this
+     */
+    public function setUploadPath(string $path)
+    {
+        $this->sessionConfig['uploadPath'] = rtrim($path, DIRECTORY_SEPARATOR);
+        return $this;
+    }
+
+    /**
+     * @return string
+     */
+    public function getUploadPath()
+    {
+        return $this->sessionConfig['uploadPath'];
+    }
+
+
+    public function setAllowedFileExtensions(array $extensions)
+    {
+        $this->sessionConfig['allowedExtensions'] = $extensions;
+        return $this;
+    }
+
+    /**
+     * @return array
+     */
+    public function getAllowedFileExtensions()
+    {
+        return $this->sessionConfig['allowedExtensions'];
+    }
+
+    /**
+     * Renames a file after upload is complete
+     * @param string $newName File name (without extension) to be applied
+     * WARNING! This method should be used on single file uploads only!
+     * Also this WILL overwrite existing files with the same name
+     *
+     * @return $this
+     */
+    public function renameFileAfterUpload(string $newName)
+    {
+        $this->sessionConfig['renameAfterUpload'] = $newName;
+        return $this;
+    }
+
+    /**
+     * @return null|string
+     */
+    public function getRenameFileAfterUpload()
+    {
+        return $this->sessionConfig['renameAfterUpload'];
+    }
+
+    /**
+     * @param bool $state Default: true
+     * @return $this
+     */
+    public function overwriteExistingFiles(bool $state = true)
+    {
+        $this->sessionConfig['overwriteExistingFiles'] = $state;
+        return $this;
+    }
+
+    /**
+     * @return bool
+     */
+    public function getOverwriteExistingFiles()
+    {
+        return $this->sessionConfig['overwriteExistingFiles'];
     }
 }

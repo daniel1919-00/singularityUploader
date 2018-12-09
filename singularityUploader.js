@@ -29,7 +29,7 @@ var singularityUploader =
 
             options = this.util.extend(true, {
                 transferDestination:'',
-                extensions:[],
+                allowedFileExtensions:[],
                 maxFileSize:null,
                 maxConcurentTransfers: 5,
                 maxFileChunkSize: 2097152, // NOTE: bytes per data chunk
@@ -47,6 +47,11 @@ var singularityUploader =
             if(options.multipleFiles)
             {
                 uploader.setAttribute('multiple', 'multiple');
+            }
+
+            if(options.allowedFileExtensions.length)
+            {
+                uploader.setAttribute('accept', '.' + options.allowedFileExtensions.join(',.'))
             }
 
             uploader.options = options;

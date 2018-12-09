@@ -18,7 +18,7 @@ Available options:
 ```javascript
 {
   transferDestination:'', // NOTE: Script that will handle the uploads
-  extensions:[], // NOTE: Allows file extensions
+  allowedFileExtensions:[], // NOTE: Accepted file extensions
   maxFileSize:null, // NOTE: Max file size in bytes
   maxConcurentTransfers: 5, // NOTE: Max concurent chunk transfers per file
   maxFileChunkSize: 2097152, // NOTE: bytes per data chunk

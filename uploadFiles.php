@@ -8,6 +8,12 @@
 
 require 'UploadManager.php';
 
-$uploadSession = new UploadManager(__DIR__.DIRECTORY_SEPARATOR.'uploads');
-$uploadSession->overwriteExistingFiles(false)
-              ->handleUploads();
+$uploadSession = new UploadManager();
+
+// NOTE: Configure settings per upload session
+$uploadSession->getUploadSessionConfig('singularityUpload')
+                ->setUploadPath(__DIR__.DIRECTORY_SEPARATOR.'uploads')
+                ->setAlowMultipleFiles(true)
+;
+
+$uploadSession->handleUploads();
