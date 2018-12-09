@@ -9,10 +9,26 @@ input._sg-uploader-input {
 
 ._sg-uploader-container{
     padding:5px;
+    vertical-align: middle;
 }
 
 ._sg-uploader-container.highlight {
     box-shadow: 0 0 10px 1px #1487db;
+}
+
+._sg-uploader-dropArea{
+    float:right;
+    text-align: center;
+    vertical-align: middle;
+    display: none;
+    font-size: 1.5rem;
+    color:#1487db;
+    font-weight: 500;
+    margin:5px;
+}
+
+._sg-uploader-container.highlight ._sg-uploader-dropArea{
+    display: inline-flex;
 }
 
 ._sg-uploader-button{
@@ -29,3 +45,4 @@ input._sg-uploader-input {
 ._sg-uploader-filesList li {
     list-style-type: none;
 }
+

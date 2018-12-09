@@ -40,6 +40,7 @@ var singularityUploader =
                 error:null,
                 uploadButtonText: 'Upload',
                 selectFilesText: 'Select Files',
+                dropAreaText: 'Drop files here'
             }, options);
 
             var uploader = document.createElement('input');
@@ -78,6 +79,7 @@ var singularityUploader =
             uploader.instanceId = instanceId;
             uploader.setAttribute('id', '_sg-uploader-input' + instanceId);
 
+            container.innerHTML = '<div class="_sg-uploader-dropArea">'+options.dropAreaText+'</div>';
             container.appendChild(uploader);
 
             var uploadButton = document.createElement('button');
