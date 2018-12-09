@@ -57,6 +57,8 @@ var singularityUploader =
             uploader.options = options;
             uploader.fileQueue = [];
             uploader.chunksQueue = [];
+            uploader.fileErrors = {};
+            uploader.errors = 0;
             uploader.totalFileChunks = 0;
             uploader.totalUploadedChunks = 0;
             uploader.activeTransfers = 0;
@@ -69,6 +71,8 @@ var singularityUploader =
             uploader.onchange = this.processInputFiles;
             uploader.updateFileProgress = this.updateFileProgress;
             uploader.updateOverallProgress = this.updateOverallProgress;
+            uploader.updateFileStatus = this.updateFileStatus;
+            uploader.fileHasErrors = this.fileHasErrors;
             var instanceId = (this.instances.push(uploader) - 1);
             uploader.instanceId = instanceId;
 
@@ -232,16 +236,33 @@ var singularityUploader =
             {
                 if(uploader.activeTransfers === 0)
                 {
-                    // NOTE: ALl files transfered successfuly
-                    if(uploader.waitingActiveTransfers.waitingFinalTransfers !== false)
+                    var overallProgressBar = document.getElementById('_sg-uploader-fileProgressContainer' + this.instanceId);
+
+                    if(overallProgressBar)
                     {
-                        clearTimeout(uploader.waitingActiveTransfers.waitingFinalTransfers);
-                        uploader.waitingActiveTransfers.waitingFinalTransfers = false;
+                        overallProgressBar.remove();
                     }
 
-                    if(this.options.success !== null)
+                    if(!uploader.errors)
                     {
-                        this.options.success.call(this);
+                        // NOTE: ALl files transfered successfuly
+                        if (uploader.waitingActiveTransfers.waitingFinalTransfers !== false)
+                        {
+                            clearTimeout(uploader.waitingActiveTransfers.waitingFinalTransfers);
+                            uploader.waitingActiveTransfers.waitingFinalTransfers = false;
+                        }
+
+                        if (this.options.success !== null)
+                        {
+                            this.options.success.call(this);
+                        }
+                    }
+                    else
+                    {
+                        if (this.options.error !== null)
+                        {
+                            this.options.error.call(this);
+                        }
                     }
                 }
                 else if(uploader.waitingActiveTransfers.waitingFinalTransfers === false)
@@ -280,17 +301,10 @@ var singularityUploader =
                     clearTimeout(uploader.waitingActiveTransfers[fileIndex]);
                     delete uploader.waitingActiveTransfers[fileIndex];
                 }
-                var checkbox = document.getElementById('_sg-uploader-fileStatusCheckbox' + uploader.instanceId + fileIndex),
-                    fileStatusContainer = document.getElementById('_sg-uploader-fileStatusContainer'+uploader.instanceId + fileIndex);
 
-                if(checkbox)
+                if(!uploader.fileHasErrors(fileIndex))
                 {
-                    checkbox.remove();
-                }
-
-                if(fileStatusContainer)
-                {
-                    fileStatusContainer.innerHTML = '<i class="fas fa-check" style="color:green;"></i>';
+                    uploader.updateFileStatus(fileIndex, true);
                 }
 
                 setTimeout(function()
@@ -345,7 +359,7 @@ var singularityUploader =
                 else
                 {
                     ++dataChunk.retries;
-                    file.chunksQueue.push(dataChunk);
+                    uploader.chunksQueue[fileIndex].push(dataChunk);
                 }
             };
 
@@ -359,11 +373,20 @@ var singularityUploader =
                         serverResponse = JSON.parse(xhr.response);
                         if(serverResponse.success)
                         {
+                            if(uploader.fileHasErrors(fileIndex))
+                            {
+                                return;
+                            }
                             ++uploader.totalUploadedChunks;
                             uploader.updateFileProgress(fileIndex, Math.round(((totalFileChunks - uploader.chunksQueue[fileIndex].length) / totalFileChunks) * 100));
                         }
-                        else
+                        else if(serverResponse.recoverable)
                         {
+                            if(uploader.fileHasErrors(fileIndex))
+                            {
+                                return;
+                            }
+
                             if(dataChunk.retries >= maxRetries)
                             {
                                 uploader.handleError('chunk id :' +  chunkId + ' transfer fail!'); // TODO: handle error
@@ -371,8 +394,16 @@ var singularityUploader =
                             else
                             {
                                 ++dataChunk.retries;
-                                file.chunksQueue.push(dataChunk);
+                                uploader.chunksQueue[fileIndex].push(dataChunk);
                             }
+                        }
+                        else if(uploader.chunksQueue[fileIndex].length)
+                        {
+                            // NOTE: Unrecoverable error
+                            uploader.fileErrors[fileIndex] = serverResponse.msg;
+                            uploader.chunksQueue[fileIndex] = [];
+                            ++uploader.errors;
+                            uploader.updateFileStatus(fileIndex, false, serverResponse.msg);
                         }
                     }
                     else
@@ -384,7 +415,7 @@ var singularityUploader =
                         else
                         {
                             ++dataChunk.retries;
-                            file.chunksQueue.push(dataChunk);
+                            uploader.chunksQueue[fileIndex].push(dataChunk);
                         }
                     }
                 }
@@ -421,6 +452,30 @@ var singularityUploader =
                 progressBar.style.width = currentProgress;
                 progressBar.innerHTML = currentProgress;
             }
+        },
+
+        updateFileStatus: function(fileIndex, success, msg)
+        {
+            msg = msg || '';
+
+            var checkbox = document.getElementById('_sg-uploader-fileStatusCheckbox' + this.instanceId + fileIndex),
+                fileStatusContainer = document.getElementById('_sg-uploader-fileStatusContainer'+this.instanceId + fileIndex),
+                statusIcon = success ? '<i class="fas fa-check" style="color:green;"></i> ' : '<i class="fas fa-times" style="color:red;"></i> ';
+
+            if(checkbox)
+            {
+                checkbox.remove();
+            }
+
+            if(fileStatusContainer)
+            {
+                fileStatusContainer.innerHTML = statusIcon + msg;
+            }
+        },
+
+        fileHasErrors: function(fileIndex)
+        {
+            return (typeof this.fileErrors[fileIndex] !== "undefined");
         },
 
         handleError: function(errorMsg)

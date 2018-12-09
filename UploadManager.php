@@ -62,6 +62,13 @@ class UploadManager
         {
             $this->sendTransferError();// NOTE: Data may have been tampered with
         }
+        else
+        {
+            if(!$this->isValidUpload())
+            {
+                $this->sendTransferError('Invalid file!', false);
+            }
+        }
 
         $this->currentTransferSession = 'UploadManagerStorage_'.$this->transferMetadata['sessionName'].$this->transferMetadata['sessionId'];
 
@@ -158,6 +165,12 @@ class UploadManager
     private function writeFileFromChunks(int $retries)
     {
         $basePath = $this->uploadDirectory . DIRECTORY_SEPARATOR;
+
+        if(!$this->isValidUpload())
+        {
+            return false;
+        }
+
         if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload() === null)
         {
             $fileName = $this->transferMetadata['fileName'];
@@ -254,6 +267,11 @@ class UploadManager
         }
         fclose($destinationStream);
 
+        if(!$this->isValidFileSize(filesize($basePath .$fileName)))
+        {
+            unlink($basePath .$fileName);
+            return false;
+        }
 
         if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAlloweMultipleFiles())
         {
@@ -270,6 +288,37 @@ class UploadManager
 
         return true;
     }
+
+    /**
+     * @return bool
+     */
+    private function isValidUpload()
+    {
+        return $this->isValidFileName($this->transferMetadata['fileName'])
+               && $this->isValidFileExtension($this->transferMetadata['fileName'])
+               && $this->isValidFileSize(max($this->transferMetadata['fileSize'], ($this->transferMetadata['totalChunks'] * $this->transferMetadata['chunkSize'])));
+    }
+
+    /**
+     * @param string $fileName
+     * @return bool
+     */
+    private function isValidFileExtension(string $fileName)
+    {
+        $extension = explode('.', str_replace(' ', '', $fileName));
+        return in_array(strtolower(end($extension)), $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAllowedFileExtensions());
+    }
+
+    private function isValidFileName(string $fileName)
+    {
+        return (strlen($fileName) > 0 && !preg_match('/\0|\/|\\\\|:|\*|<|>|\?/', $fileName));
+    }
+
+    private function isValidFileSize($size)
+    {
+        return $size <= $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getMaxFileSize();
+    }
+
 
     private function extractTransferMetadata()
     {
@@ -304,21 +353,17 @@ class UploadManager
     private function sendTransferSuccess()
     {
         echo json_encode([
-            'success' => true,
-            'fileProgress' => 0,
-            'chunkId' => $this->transferMetadata['chunkId'],
-            'sessionData' => $this->fileStorage
+            'success' => true
         ]);
         exit;
     }
 
-    private function sendTransferError(string $errorMsg = '')
+    private function sendTransferError(string $errorMsg = '', $recoverableError = true)
     {
         echo json_encode([
             'success' => false,
             'msg' => $errorMsg,
-            'chunkId' => $this->transferMetadata['chunkId'],
-            'sessionData' => $this->fileStorage
+            'recoverable' => $recoverableError
         ]);
         exit;
     }
@@ -340,8 +385,74 @@ class UploadManagerConfig
             'uploadPath' => '',
             'allowedExtensions' => [],
             'renameAfterUpload' => null,
-            'overwriteExistingFiles' => true
+            'overwriteExistingFiles' => true,
+            'maxFileSize' => 10485760 // NOTE: ~10MB
         ];
+    }
+
+    /**
+     * @param string $size A string that represents a file size. E.g. 10Mb, 1Gb, etc. If the size unit(b, kb, etc.) is not found then the string will be considered as bytes
+     * @return $this
+     */
+    public function setMaxFileSize(string $size)
+    {
+        $value = trim($size);
+
+        if($value == '')
+        {
+            return $this;
+        }
+
+        $unit = strtolower(substr($value,  -2));
+        $unit = trim(preg_replace('/[^A-Za-z]+/', '', $unit));
+
+        if($unit == '')
+        {
+            $unit = 'b';
+        }
+
+        $value = (int)preg_replace('/[^0-9.]+/', '', $value);
+
+        if($unit == 'b')
+        {
+            if(!empty($value))
+            {
+                $this->sessionConfig['maxFileSize'] = $value;
+            }
+
+            return $this;
+        }
+
+        switch($unit)
+        {
+            case 'p':
+            case 'pb':
+                $value *= 1024;
+            case 't':
+            case 'tb':
+                $value *= 1024;
+            case 'g':
+            case 'gb':
+                $value *= 1024;
+            case 'm':
+            case 'mb':
+                $value *= 1024;
+            case 'k':
+            case 'kb':
+                $value *= 1024;
+        }
+
+        $this->sessionConfig['maxFileSize'] = $value;
+
+        return $this;
+    }
+
+    /**
+     * @return int
+     */
+    public function getMaxFileSize()
+    {
+        return $this->sessionConfig['maxFileSize'];
     }
 
     /**
@@ -382,6 +493,10 @@ class UploadManagerConfig
     }
 
 
+    /**
+     * @param array $extensions All extensions should be lower-case and not the include extension dot '.'
+     * @return $this
+     */
     public function setAllowedFileExtensions(array $extensions)
     {
         $this->sessionConfig['allowedExtensions'] = $extensions;

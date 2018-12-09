@@ -5,8 +5,13 @@ A simple file uploader
 * Suports uploading of large files via multiple smaller-sized data chunks (this also allows bypassing the php upload limit)
 * Includes server-side handling script (PHP)
 
+<div style="color:red;">Warning! Altough this plugins includes some basic "security" measures, you should implement your own if you intend to use this in a project! I'm not responsible for any security breaches you may have!</div>
+
 #Usage
 <h4>JS Plugin</h4>
+
+The plugin uses Bootstrap 4 and font-awesome styles, but you may change it to whatever suits your own project.
+
 ```javascript
 // 1. Include script file <script src="singularityUploader.min.js"></script>
 // 2 . Create an instance 
