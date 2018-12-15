@@ -5,6 +5,8 @@ A simple file uploader
 * Suports uploading of large files via multiple smaller-sized data chunks (this also allows bypassing the php upload limit)
 * Includes server-side handling script (PHP)
 
+![](img/demo-animation.gif)
+
 # Usage
 <div style="color:red;">Warning! Altough this plugins includes some basic "security" measures, you should implement your own if you intend to use this in a project! I'm not responsible for any security breaches you may have!</div>
 
