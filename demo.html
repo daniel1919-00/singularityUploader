@@ -13,15 +13,17 @@
     <title>Hello, world!</title>
 </head>
 <body>
+<div style="width:600px;text-align: center;">
 <h3>Singularity uploader demo</h3><hr>
 <div id="singularityUpload"></div>
-
+</div>
 <!-- Optional JavaScript -->
 <script src="singularityUploader.min.js"></script>
 <script>
 singularityUploader.create('singularityUpload', {
     transferDestination: 'uploadFiles.php',
     allowedFileExtensions: ['doc', 'docx', 'pdf'],
+    selectFilesText:'Select or drag files here',
     success: function()
     {
         alert('All files uploaded successfully');

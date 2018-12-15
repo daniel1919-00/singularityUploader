@@ -10,6 +10,7 @@ input._sg-uploader-input {
 ._sg-uploader-container{
     padding:5px;
     vertical-align: middle;
+    text-align: left;
 }
 
 ._sg-uploader-container.highlight {
