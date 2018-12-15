@@ -71,7 +71,16 @@ let options = {
         }
     ],
     selectFilesText: 'Select Files', // NOTE: Select files button text
-    dropAreaText: 'Drop files here' 
+    dropAreaText: 'Drop files here',
+    invalidFilesErrorHandler: function(uploaderOptions, errorList) // NOTE: Called after the input files are evaluated
+    {
+        alert(uploaderOptions.fileErrorTexts.general + "\n\n" + errorList.join("\n"));
+    },
+    fileErrorTexts: {
+        general: 'The files bellow have an invalid extension or are bigger than the maximum allowed',
+        sizeError: 'File exceeds maximum allowed size',
+        extensionError: 'File does not have the allowed extension'
+    }
 }
 ```
 

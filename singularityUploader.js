@@ -75,7 +75,16 @@ var singularityUploader =
                     }
                 ],
                 selectFilesText: 'Select Files', // NOTE: Select files button text
-                dropAreaText: 'Drop files here'
+                dropAreaText: 'Drop files here',
+                invalidFilesErrorHandler: function(uploaderOptions, errorList)
+                {
+                    alert(uploaderOptions.fileErrorTexts.general + "\n\n" + errorList.join("\n"));
+                },
+                fileErrorTexts: {
+                    general: 'The files bellow have an invalid extension or are bigger than the maximum allowed',
+                    sizeError: 'File exceeds maximum allowed size',
+                    extensionError: 'File does not have the allowed extension'
+                }
             }, options);
 
             if(options.multipleFiles)
@@ -111,8 +120,6 @@ var singularityUploader =
             var instanceId = (this.instances.push(uploader) - 1);
             uploader.instanceId = instanceId;
             uploader.setAttribute('id', '_sg-uploader-input' + instanceId);
-
-            container.innerHTML = '<div class="_sg-uploader-dropArea">'+options.dropAreaText+'</div>';
             container.appendChild(uploader);
 
             var actionButtons = document.createElement('div');
@@ -158,11 +165,26 @@ var singularityUploader =
             uploaderLabel.setAttribute('class', '_sg-uploader-fileLabel');
 
             container.appendChild(uploaderLabel);
+
+            var dropAreaText = document.createElement('div');
+            dropAreaText.innerHTML = options.dropAreaText;
+            dropAreaText.setAttribute('class', '_sg-uploader-dropArea');
+            container.appendChild(dropAreaText);
+
             uploaderLabel.appendChild(actionButtons);
             uploader.actionButtons = actionButtons;
 
             container.classList.add('_sg-uploader-container');
             container.setAttribute('data-instance-id', instanceId);
+
+            var fileList = document.createElement('ul');
+            fileList.setAttribute('class', '_sg-uploader-filesList');
+            fileList.setAttribute('id', '_sg-uploader-filesList' + instanceId);
+            var overallProgressBar = document.createElement('div');
+            overallProgressBar.innerHTML = '<div id="_sg-uploader-fileProgressContainer'+ instanceId +'" class="_sg-uploader-fileProgress progress" style="width: 85px;display:none;vertical-align:middle;"><div id="_sg-uploader-fileProgress'+instanceId+'" class="progress-bar" role="progressbar" style="width:0;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div></div>';
+            container.appendChild(overallProgressBar);
+            container.appendChild(fileList);
+            uploader.fileList = fileList;
 
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (eventName) {
                 container.addEventListener(eventName,
@@ -210,25 +232,18 @@ var singularityUploader =
 
         processInputFiles: function()
         {
-            var fileList,
-                initFileList;
-            if(this.fileList)
-            {
-                fileList = this.fileList;
-                fileList.innerHTML = '';
-                initFileList = false;
-                this.totalFileChunks = 0;
-                this.totalUploadedChunks = 0;
-            }
-            else
-            {
-                fileList = document.createElement('ul');
-                initFileList = true;
-            }
+            var fileList = this.fileList;
 
             if(!fileList)
             {
                 return;
+            }
+
+            if(fileList.innerHTML !== '')
+            {
+                fileList.innerHTML = '';
+                this.totalFileChunks = 0;
+                this.totalUploadedChunks = 0;
             }
 
             var liElem,
@@ -242,10 +257,13 @@ var singularityUploader =
                 uploader = this,
                 fileIndex = 0,
                 maxChunkSize = uploader.options.maxFileChunkSize,
+                maxFileSize = uploader.options.maxFileSize,
+                allowedExtensions = uploader.options.allowedFileExtensions,
                 chunkId = 0,
                 files = uploader.files,
                 fileCount = files.length,
                 instanceId = uploader.instanceId,
+                invalidFiles = [],
                 addRemoveFileFromQueue = function()
                 {
                     if(this.checked)
@@ -261,6 +279,22 @@ var singularityUploader =
             for(; fileIndex < fileCount; ++fileIndex)
             {
                 currentFile = files[fileIndex];
+
+                if(maxFileSize !== null && (currentFile.size > maxFileSize))
+                {
+                    invalidFiles.push(currentFile.name + ' ('+ uploader.options.fileErrorTexts.sizeError +')');
+                    continue;
+                }
+
+                if(allowedExtensions.length)
+                {
+                    if(allowedExtensions.indexOf(singularityUploader.util.extractFileExtensionFromString(currentFile. name)) === -1)
+                    {
+                        invalidFiles.push(currentFile.name + ' ('+ uploader.options.fileErrorTexts.extensionError +')');
+                        continue;
+                    }
+                }
+
                 liElem = document.createElement('li');
                 fileStatus = document.createElement('div');
 
@@ -315,17 +349,14 @@ var singularityUploader =
                 fileList.appendChild(liElem);
             }
 
-            uploader.actionButtons.style.display = 'inline-block';
-
-            if(initFileList)
+            if(uploader.fileQueue.length)
             {
-                fileList.setAttribute('class', '_sg-uploader-filesList');
-                fileList.setAttribute('id', '_sg-uploader-filesList' + instanceId);
-                var overallProgressBar = document.createElement('div');
-                overallProgressBar.innerHTML = '<div id="_sg-uploader-fileProgressContainer'+ instanceId +'" class="_sg-uploader-fileProgress progress" style="width: 85px;display:none;vertical-align:middle;"><div id="_sg-uploader-fileProgress'+instanceId+'" class="progress-bar" role="progressbar" style="width:0;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div></div>';
-                uploader.parentNode.appendChild(overallProgressBar);
-                uploader.parentNode.appendChild(fileList);
-                uploader.fileList = fileList;
+                uploader.actionButtons.style.display = 'inline-block';
+            }
+
+            if(invalidFiles.length)
+            {
+                uploader.options.invalidFilesErrorHandler(uploader.options, invalidFiles);
             }
         },
 
@@ -709,6 +740,11 @@ var singularityUploader =
                     }
 
                     return (crc ^ (-1)) >>> 0;
+                },
+
+                extractFileExtensionFromString(string)
+                {
+                    return /(?:\.([^.]+))?$/.exec(string)[1];
                 },
             }
     };
