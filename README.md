@@ -27,18 +27,51 @@ Available options:
 
 ```javascript
 let options = {
-  transferDestination:'', // NOTE: Script that will handle the uploads
-  allowedFileExtensions:[], // NOTE: Accepted file extensions
-  maxFileSize:null, // NOTE: Max file size in bytes
-  maxConcurentTransfers: 5, // NOTE: Max concurent chunk transfers per file
-  maxFileChunkSize: 2097152, // NOTE: bytes per data chunk
-  multipleFiles:false, // NOTE: Single/multiple file upload
-  sessionName: 'singularityUpload', //NOTE: The session name that the php script will use to store uploaded files
-  maxRetries: 3, // NOTE: Max number of chunk retries
-  success:null, // Succes callback - called after the last file has been uploaded and success confirmation from handling script is received
-  error:null, // NOTE: Not yet implemented
-  uploadButtonText: 'Upload', // NOTE: Upload button displayed text
-  selectFilesText: 'Select Files' // NOTE: Select files button text
+transferDestination:'', // NOTE: Script that will handle the uploads
+                allowedFileExtensions:[], // NOTE: Accepted file extensions
+                maxFileSize:null, // NOTE: Max file size in bytes
+                maxConcurrentTransfers: 5, // NOTE: Max concurrent chunk transfers per file
+                maxFileChunkSize: 2097152, // NOTE: bytes per data chunk
+                multipleFiles:false, // NOTE: Single/multiple file upload
+                sessionName: 'singularityUpload', //NOTE: The session name that the php script will use to store uploaded files
+                maxRetries: 3, // NOTE: Max number of chunk retries
+                success:null, // NOTE: Success callback - called after the last file has been uploaded and success confirmation from handling script is received
+                error:null,
+                buttons: [ // NOTE: Can be extended to include custom buttons
+                    {
+                        text: 'Clear Files',
+                        attributes:
+                            {
+                                'class':'btn btn-primary btn-sm _sg-uploader-button _sg-uploader-actionButton',
+                                'onclick': function(event)
+                                {
+                                    event.preventDefault();
+                                    uploader.clearTransferQueue();
+                                }
+                            }
+                    },
+                    {
+                        text: 'Upload',
+                        attributes:
+                            {
+                                'class':'btn btn-primary btn-sm _sg-uploader-button _sg-uploader-actionButton',
+                                'onclick': function(event)
+                                {
+                                    event.preventDefault();
+                                    var progressBar = document.getElementById('_sg-uploader-fileProgressContainer' + instanceId);
+
+                                    if(progressBar)
+                                    {
+                                        progressBar.style.display = 'inline-flex';
+                                    }
+
+                                    uploader.initTransfer();
+                                }
+                            }
+                    }
+                ],
+                selectFilesText: 'Select Files', // NOTE: Select files button text
+                dropAreaText: 'Drop files here' 
 }
 ```
 

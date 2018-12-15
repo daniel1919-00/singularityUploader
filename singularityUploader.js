@@ -25,27 +25,59 @@ var singularityUploader =
                 return (instance !== null ? Number(instance) : -1);
             }
 
-            options = options || {};
-
-            options = this.util.extend(true, {
-                transferDestination:'',
-                allowedFileExtensions:[],
-                maxFileSize:null,
-                maxConcurentTransfers: 5,
-                maxFileChunkSize: 2097152, // NOTE: bytes per data chunk
-                multipleFiles:false,
-                sessionName: 'singularityUpload', //NOTE: The session name that the php script will use to store uploaded files
-                maxRetries: 3,
-                success:null,
-                error:null,
-                uploadButtonText: 'Upload',
-                selectFilesText: 'Select Files',
-                dropAreaText: 'Drop files here'
-            }, options);
-
             var uploader = document.createElement('input');
             uploader.setAttribute('type', 'file');
             uploader.setAttribute('class', '_sg-uploader-input');
+
+            options = options || {};
+            options = this.util.extend(true, {
+                transferDestination:'', // NOTE: Script that will handle the uploads
+                allowedFileExtensions:[], // NOTE: Accepted file extensions
+                maxFileSize:null, // NOTE: Max file size in bytes
+                maxConcurrentTransfers: 5, // NOTE: Max concurrent chunk transfers per file
+                maxFileChunkSize: 2097152, // NOTE: bytes per data chunk
+                multipleFiles:false, // NOTE: Single/multiple file upload
+                sessionName: 'singularityUpload', //NOTE: The session name that the php script will use to store uploaded files
+                maxRetries: 3, // NOTE: Max number of chunk retries
+                success:null, // NOTE: Success callback - called after the last file has been uploaded and success confirmation from handling script is received
+                error:null,
+                buttons: [ // NOTE: Can be extended to include custom buttons
+                    {
+                        text: 'Clear Files',
+                        attributes:
+                            {
+                                'class':'btn btn-primary btn-sm _sg-uploader-button _sg-uploader-actionButton',
+                                'onclick': function(event)
+                                {
+                                    event.preventDefault();
+                                    uploader.clearTransferQueue();
+                                }
+                            }
+                    },
+                    {
+                        text: 'Upload',
+                        attributes:
+                            {
+                                'class':'btn btn-primary btn-sm _sg-uploader-button _sg-uploader-actionButton',
+                                'onclick': function(event)
+                                {
+                                    event.preventDefault();
+                                    var progressBar = document.getElementById('_sg-uploader-fileProgressContainer' + instanceId);
+
+                                    if(progressBar)
+                                    {
+                                        progressBar.style.display = 'inline-flex';
+                                    }
+
+                                    uploader.initTransfer();
+                                }
+                            }
+                    }
+                ],
+                selectFilesText: 'Select Files', // NOTE: Select files button text
+                dropAreaText: 'Drop files here'
+            }, options);
+
             if(options.multipleFiles)
             {
                 uploader.setAttribute('multiple', 'multiple');
@@ -75,6 +107,7 @@ var singularityUploader =
             uploader.updateOverallProgress = this.updateOverallProgress;
             uploader.updateFileStatus = this.updateFileStatus;
             uploader.fileHasErrors = this.fileHasErrors;
+            uploader.clearTransferQueue = this.clearTransferQueue;
             var instanceId = (this.instances.push(uploader) - 1);
             uploader.instanceId = instanceId;
             uploader.setAttribute('id', '_sg-uploader-input' + instanceId);
@@ -82,23 +115,41 @@ var singularityUploader =
             container.innerHTML = '<div class="_sg-uploader-dropArea">'+options.dropAreaText+'</div>';
             container.appendChild(uploader);
 
-            var uploadButton = document.createElement('button');
-            uploadButton.setAttribute('id', '_sg-uploader-button' + instanceId);
-            uploadButton.setAttribute('class', 'btn btn-primary btn-sm _sg-uploader-button');
-            uploadButton.innerHTML = options.uploadButtonText;
-            uploadButton.style.display = 'none';
-            uploadButton.onclick = function(event)
+            var actionButtons = document.createElement('div');
+            actionButtons.setAttribute('class', '_sg-uploader-actionButtons');
+            actionButtons.style.display = 'none';
+
+            var actionButton,
+                buttonData,
+                maxButtons = options.buttons.length,
+                buttonCount,
+                buttonAttribute;
+            if(options.buttons.length)
             {
-                event.preventDefault();
-                var progressBar = document.getElementById('_sg-uploader-fileProgressContainer' + instanceId);
-
-                if(progressBar)
+                for(buttonCount = 0; buttonCount < maxButtons; ++buttonCount)
                 {
-                    progressBar.style.display = 'inline-flex';
-                }
+                    buttonData = options.buttons[buttonCount];
+                    actionButton = document.createElement('button');
+                    actionButton.innerHTML = buttonData.text;
 
-                uploader.initTransfer();
-            };
+                    if(buttonData.attributes)
+                    {
+                        for(buttonAttribute in buttonData.attributes)
+                        {
+                            if(typeof buttonData.attributes[buttonAttribute] === "function")
+                            {
+                                actionButton[buttonAttribute] = buttonData.attributes[buttonAttribute];
+                            }
+                            else
+                            {
+                                actionButton.setAttribute(buttonAttribute, buttonData.attributes[buttonAttribute]);
+                            }
+                        }
+                    }
+
+                    actionButtons.appendChild(actionButton);
+                }
+            }
 
             var uploaderLabel = document.createElement('label');
 
@@ -107,8 +158,8 @@ var singularityUploader =
             uploaderLabel.setAttribute('class', '_sg-uploader-fileLabel');
 
             container.appendChild(uploaderLabel);
-            uploaderLabel.appendChild(uploadButton);
-            uploader.uploadButton = uploadButton;
+            uploaderLabel.appendChild(actionButtons);
+            uploader.actionButtons = actionButtons;
 
             container.classList.add('_sg-uploader-container');
             container.setAttribute('data-instance-id', instanceId);
@@ -264,7 +315,7 @@ var singularityUploader =
                 fileList.appendChild(liElem);
             }
 
-            uploader.uploadButton.style.display = 'inline-block';
+            uploader.actionButtons.style.display = 'inline-block';
 
             if(initFileList)
             {
@@ -276,6 +327,20 @@ var singularityUploader =
                 uploader.parentNode.appendChild(fileList);
                 uploader.fileList = fileList;
             }
+        },
+
+        clearTransferQueue: function()
+        {
+            var uploader = this;
+            uploader.fileQueue = [];
+            uploader.chunksQueue = [];
+            uploader.fileErrors = {};
+            uploader.errors = 0;
+            uploader.totalFileChunks = 0;
+            uploader.totalUploadedChunks = 0;
+            uploader.activeTransfers = 0;
+            uploader.fileList.innerHTML = '';
+            uploader.actionButtons.style.display = 'none';
         },
 
         initTransfer: function()
@@ -292,7 +357,7 @@ var singularityUploader =
                         overallProgressBar.remove();
                     }
 
-                    uploader.uploadButton.style.display = 'none';
+                    uploader.actionButtons.style.display = 'none';
 
                     if(!uploader.errors)
                     {
@@ -365,7 +430,7 @@ var singularityUploader =
                 return;
             }
 
-            if((uploader.activeTransfers + 1) > uploader.options.maxConcurentTransfers)
+            if((uploader.activeTransfers + 1) > uploader.options.maxConcurrentTransfers)
             {
                 if(typeof uploader.waitingActiveTransfers[fileIndex] === "undefined")
                 {
