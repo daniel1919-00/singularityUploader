@@ -72,7 +72,7 @@ let options = {
     ],
     selectFilesText: 'Select Files', // NOTE: Select files button text
     dropAreaText: 'Drop files here',
-    invalidFilesErrorHandler: function(uploaderOptions, errorList) // NOTE: Called after the input files are evaluated
+    invalidFilesErrorHandler: function(errorList, uploaderOptions) // NOTE: Called after the input files are evaluated
     {
         alert(uploaderOptions.fileErrorTexts.general + "\n\n" + errorList.join("\n"));
     },

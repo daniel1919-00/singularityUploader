@@ -76,7 +76,7 @@ var singularityUploader =
                 ],
                 selectFilesText: 'Select Files', // NOTE: Select files button text
                 dropAreaText: 'Drop files here',
-                invalidFilesErrorHandler: function(uploaderOptions, errorList)
+                invalidFilesErrorHandler: function(errorList, uploaderOptions)
                 {
                     alert(uploaderOptions.fileErrorTexts.general + "\n\n" + errorList.join("\n"));
                 },
@@ -356,7 +356,7 @@ var singularityUploader =
 
             if(invalidFiles.length)
             {
-                uploader.options.invalidFilesErrorHandler(uploader.options, invalidFiles);
+                uploader.options.invalidFilesErrorHandler(invalidFiles, uploader.options);
             }
         },
 
