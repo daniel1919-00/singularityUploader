@@ -288,7 +288,7 @@ var singularityUploader =
 
                 if(allowedExtensions.length)
                 {
-                    if(allowedExtensions.indexOf(singularityUploader.util.extractFileExtensionFromString(currentFile. name)) === -1)
+                    if(allowedExtensions.indexOf(singularityUploader.util.extractFileExtensionFromString(currentFile.name)) === -1)
                     {
                         invalidFiles.push(currentFile.name + ' ('+ uploader.options.fileErrorTexts.extensionError +')');
                         continue;
