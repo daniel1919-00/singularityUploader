@@ -26,6 +26,15 @@ class UploadManager
     }
 
     /**
+     * @param string $uploadSession
+     * @return array|string An array if multiple files were allowed or a string if single (will be an empty string if no files were stored in session for both cases)
+     */
+    public function getUploadedFiles(string $uploadSession)
+    {
+        return isset($_SESSION[$uploadSession]) ? $_SESSION[$uploadSession] : '';
+    }
+
+    /**
      * @param string $sessionName
      * @return UploadManagerConfig
      */
@@ -142,7 +151,7 @@ class UploadManager
         }
         else
         {
-            $fileName = $this->uploadDirectory . DIRECTORY_SEPARATOR .$this->transferMetadata['fileName'];
+            $fileName = $this->uploadDirectory . DIRECTORY_SEPARATOR . $this->getFinalFilename();
         }
 
         $destination = fopen($fileName, 'wb');
@@ -158,33 +167,18 @@ class UploadManager
         fclose($inputStream);
         fclose($destination);
 
+        if(($this->transferMetadata['totalChunks'] == 1) && $writeSuccess)
+        {
+            $this->storeUploadedFile($fileName);
+        }
+
         return $writeSuccess;
     }
 
     private function writeFileFromChunks(int $retries)
     {
         $basePath = $this->uploadDirectory . DIRECTORY_SEPARATOR;
-        if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload() === null)
-        {
-            $fileName = $this->transferMetadata['fileName'];
-
-            if (!$this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getOverwriteExistingFiles() && file_exists($basePath . $fileName))
-            {
-                $sameFileNameCount = 0;
-                $fileInfo          = pathinfo($basePath . $fileName);
-                do
-                {
-                    $fileName = $fileInfo['filename'] . '_' . rand(1, 9999) . (++$sameFileNameCount) . '.' . $fileInfo['extension'];
-                } while (file_exists($basePath . $fileName));
-            }
-        }
-        else
-        {
-            $initialExtension = explode('.', $this->transferMetadata['fileName']);
-            $initialExtension = $initialExtension ? '.'.end($initialExtension) : '';
-
-            $fileName = $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload().$initialExtension;
-        }
+        $fileName = $this->getFinalFilename();
 
         $destinationStream = fopen($basePath .$fileName, 'wb');
 
@@ -266,20 +260,58 @@ class UploadManager
             return false;
         }
 
+        $this->storeUploadedFile($basePath .$fileName);
+
+        return true;
+    }
+
+    private function storeUploadedFile(string $filePath)
+    {
         if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getAllowMultipleFiles())
         {
             if(!isset($_SESSION[$this->transferMetadata['sessionName']]))
             {
                 $_SESSION[$this->transferMetadata['sessionName']] = [];
             }
-            $_SESSION[$this->transferMetadata['sessionName']][] = $basePath .$fileName;
+            $_SESSION[$this->transferMetadata['sessionName']][$filePath] = $filePath;
         }
         else
         {
-            $_SESSION[$this->transferMetadata['sessionName']] = $basePath .$fileName;
+            $_SESSION[$this->transferMetadata['sessionName']] = $filePath;
+        }
+    }
+
+    /**
+     * Gets the filename resulted after checking the configuration flags (overwrite existing files, rename after upload, etc.)
+     * @return string
+     */
+    private function getFinalFilename()
+    {
+        $uploadPath = $this->uploadDirectory . DIRECTORY_SEPARATOR;
+        $fileName = $this->transferMetadata['fileName'];
+
+        if($this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload() === null)
+        {
+            if (!$this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getOverwriteExistingFiles() && file_exists($uploadPath . $fileName))
+            {
+                $sameFileNameCount = 0;
+                $fileInfo          = pathinfo($uploadPath . $fileName);
+                $fileInfo['extension'] = strtolower($fileInfo['extension']);
+                do
+                {
+                    $fileName = $fileInfo['filename'] . '_' . rand(1, 9999) . (++$sameFileNameCount) . '.' . $fileInfo['extension'];
+                } while (file_exists($uploadPath . $fileName));
+            }
+        }
+        else
+        {
+            $initialExtension = explode('.', $this->transferMetadata['fileName']);
+            $initialExtension = $initialExtension ? '.'.strtolower(end($initialExtension)) : '';
+
+            $fileName = $this->getUploadSessionConfig($this->transferMetadata['sessionName'])->getRenameFileAfterUpload().$initialExtension;
         }
 
-        return true;
+        return $fileName;
     }
 
     /**

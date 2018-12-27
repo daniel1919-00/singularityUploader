@@ -186,32 +186,27 @@ var singularityUploader =
             container.appendChild(fileList);
             uploader.fileList = fileList;
 
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(function (eventName) {
-                container.addEventListener(eventName,
-                    function(e)
-                    {
-                        e.preventDefault();
-                        e.stopPropagation();
-                    },
-                    false)
-            });
-
             ['dragenter', 'dragover'].forEach(function (eventName) {
-                container.addEventListener(eventName, function()
+                container.addEventListener(eventName, function(e)
                 {
-                    container.classList.add('highlight')
+                    e.preventDefault();
+                    e.stopPropagation();
+                    container.classList.add('highlight');
                 }, false)
             });
 
-            ['dragleave', 'drop'].forEach(function (eventName) {
-                container.addEventListener(eventName, function()
-                {
-                    container.classList.remove('highlight')
-                }, false)
-            });
+            container.addEventListener('dragleave', function(e)
+            {
+                e.preventDefault();
+                e.stopPropagation();
+                container.classList.remove('highlight');
+            }, false);
 
             container.addEventListener('drop', function(e)
             {
+                e.preventDefault();
+                e.stopPropagation();
+                container.classList.remove('highlight');
                 if(e.dataTransfer && e.dataTransfer.files)
                 {
                     uploader.files = e.dataTransfer.files;
